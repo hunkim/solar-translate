@@ -102,6 +102,8 @@ export default function SolarTranslatePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Add AbortController ref to cancel ongoing translations
   const abortControllerRef = useRef<AbortController | null>(null)
+  // Add state to track which page is currently being translated
+  const [activeTranslationIndex, setActiveTranslationIndex] = useState<number | null>(null)
   
   // Function to detect if content contains markdown
   const isMarkdownContent = (text: string): boolean => {
@@ -141,6 +143,9 @@ export default function SolarTranslatePage() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    
+    // Clear active translation indicator
+    setActiveTranslationIndex(null)
     
     setTargetLang(newTargetLang)
     
@@ -280,6 +285,9 @@ export default function SolarTranslatePage() {
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
+    // Set this page as actively translating
+    setActiveTranslationIndex(pageIndex)
+
     // Use the override target language if provided, otherwise use current state
     const currentTargetLang = overrideTargetLang || targetLang
 
@@ -367,6 +375,8 @@ export default function SolarTranslatePage() {
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null
       }
+      // Clear the active translation indicator
+      setActiveTranslationIndex(null)
     }
   }
 
@@ -417,6 +427,9 @@ export default function SolarTranslatePage() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    
+    // Clear active translation indicator
+    setActiveTranslationIndex(null)
     
     // Clear all translations first
     setTranslatedPages(sourcePages.map(() => ""))
@@ -897,12 +910,20 @@ export default function SolarTranslatePage() {
               <div className="flex flex-col gap-4 overflow-y-auto pr-2 flex-grow">
                 {translatedPages.map((page, index) => {
                   const hasMarkdown = isMarkdownContent(page)
+                  const isActivelyTranslating = activeTranslationIndex === index
                   
                   return (
-                    <Card key={index} className="flex flex-col bg-slate-100/70">
+                    <Card key={index} className="flex flex-col relative bg-slate-100/70">
+                      {/* Simple spinning icon in top-left corner when actively translating */}
+                      {isActivelyTranslating && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                        </div>
+                      )}
+                      
                       {hasMarkdown ? (
                         <div 
-                          className="p-3 min-h-[330px] max-h-[330px] overflow-y-auto border-0 bg-transparent"
+                          className={`p-3 min-h-[330px] max-h-[330px] overflow-y-auto border-0 bg-transparent ${isActivelyTranslating ? 'pt-8 pl-8' : ''}`}
                           style={{ 
                             fontSize: '14px',
                             lineHeight: '1.5',
@@ -919,7 +940,7 @@ export default function SolarTranslatePage() {
                           value={page}
                           readOnly
                           placeholder="Translation..."
-                          className="resize-none border-0 focus-visible:ring-0 bg-transparent"
+                          className={`resize-none border-0 focus-visible:ring-0 bg-transparent ${isActivelyTranslating ? 'pt-8 pl-8' : 'p-3'}`}
                           style={{ height: '330px' }}
                           rows={16}
                         />
@@ -927,7 +948,7 @@ export default function SolarTranslatePage() {
                       <div className="flex items-center justify-between p-2 border-t">
                         <div className="flex items-center gap-1 text-xs text-slate-500">
                           <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                            Markdown
+                            - {index + 1} -
                           </span>
                           {hasMarkdown && (
                             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
@@ -944,6 +965,7 @@ export default function SolarTranslatePage() {
                             size="icon"
                             className="h-7 w-7 text-slate-500 hover:text-slate-800"
                             onClick={() => copyPageToClipboard(index)}
+                            disabled={isActivelyTranslating}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
