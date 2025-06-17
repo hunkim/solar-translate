@@ -865,6 +865,55 @@ export default function SolarTranslatePage() {
               </div>
             </div>
           </main>
+          
+          {/* Footer */}
+          <footer className="border-t bg-slate-50/50 px-6 py-4 mt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-600">
+              <div className="flex items-center gap-4">
+                <span>Solar Translate - AI-Powered Document Translation</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <a 
+                  href="https://github.com/hunkim/solar-translate/issues" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:text-slate-900 transition-colors"
+                >
+                  <Mail className="h-4 w-4" />
+                  Feedback
+                </a>
+                <a 
+                  href="https://console.upstage.ai/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:text-slate-900 transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  Get API Key
+                </a>
+                <a 
+                  href="https://upstage.ai" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:text-slate-900 transition-colors"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Upstage
+                </a>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-slate-500 text-center">
+              For private, internal use of this translation service, please contact us at{" "}
+              <a 
+                href="https://upstage.ai" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-slate-700"
+              >
+                Upstage Homepage
+              </a>
+            </div>
+          </footer>
         </div>
       </div>
     </div>

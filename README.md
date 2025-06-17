@@ -186,6 +186,15 @@ npm run test:headed
 - **CORS Configuration**: Proper cross-origin resource sharing
 - **Input Sanitization**: XSS protection for user inputs
 
+## 🔗 Important Links
+
+### 🔑 **Get Started**
+- **Solar API Key**: Get your API key at [Upstage Console](https://console.upstage.ai/)
+- **Feedback & Issues**: Report bugs or request features at [GitHub Issues](https://github.com/hunkim/solar-translate/issues)
+
+### 🏢 **Enterprise & Private Use**
+For private, internal use of this translation service, please contact us at [Upstage Homepage](https://upstage.ai)
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -193,6 +202,12 @@ npm run test:headed
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## 📞 Support & Contact
+
+- **Issues & Feedback**: [GitHub Issues](https://github.com/hunkim/solar-translate/issues)
+- **API Documentation**: [Upstage Console](https://console.upstage.ai/)
+- **Enterprise Inquiries**: [Upstage Homepage](https://upstage.ai)
 
 ## 📄 License
 

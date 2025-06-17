@@ -182,15 +182,32 @@ Consider adding:
 - [ ] Verify SSL certificate
 - [ ] Submit to search engines
 
+## 🔗 Important Links
+
+### 🔑 **API & Configuration**
+- **Get Solar API Key**: [Upstage Console](https://console.upstage.ai/)
+- **API Documentation**: Available at Upstage Console
+- **Rate Limits & Pricing**: Check console for current limits
+
+### 🐛 **Support & Feedback**
+- **Report Issues**: [GitHub Issues](https://github.com/hunkim/solar-translate/issues)
+- **Feature Requests**: Submit via GitHub Issues
+- **Bug Reports**: Include deployment platform and error details
+
+### 🏢 **Enterprise & Private Use**
+For private, internal use of this translation service, please contact us at [Upstage Homepage](https://upstage.ai)
+
 ## 📞 Support
 
 For deployment issues:
 1. Check Next.js deployment docs
-2. Verify environment variables
+2. Verify environment variables at [Upstage Console](https://console.upstage.ai/)
 3. Test API endpoints
 4. Check browser console for errors
+5. Report issues at [GitHub Issues](https://github.com/hunkim/solar-translate/issues)
 
 ---
 
-**Solar Translate** - AI-Powered Document Translation
-Powered by Solar LLM & Upstage Document Parse 
+**Solar Translate** - AI-Powered Document Translation  
+Powered by Solar LLM & Upstage Document Parse  
+🔗 [Get API Key](https://console.upstage.ai/) | 🐛 [Report Issues](https://github.com/hunkim/solar-translate/issues) | 🏢 [Enterprise](https://upstage.ai) 
