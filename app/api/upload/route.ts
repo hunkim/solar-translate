@@ -1,7 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIP, RATE_LIMITS } from '@/lib/rateLimiter'
+
+// Create rate limiter for uploads
+const uploadLimiter = rateLimit(RATE_LIMITS.upload)
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request)
+    const { allowed, resetTime, remaining } = uploadLimiter(clientIP)
+    
+    if (!allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Too many upload requests. Please try again later.',
+          resetTime: resetTime ? new Date(resetTime).toISOString() : undefined
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': resetTime ? Math.ceil((resetTime - Date.now()) / 1000).toString() : '900',
+            'X-RateLimit-Limit': RATE_LIMITS.upload.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetTime ? resetTime.toString() : ''
+          }
+        }
+      )
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     

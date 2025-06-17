@@ -316,6 +316,24 @@ export default function SolarTranslatePage() {
       })
 
       if (!response.ok) {
+        if (response.status === 429) {
+          // Handle rate limiting
+          const errorData = await response.json().catch(() => ({ error: 'Rate limit exceeded' }))
+          const resetTime = errorData.resetTime ? new Date(errorData.resetTime) : null
+          const waitMinutes = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60)) : 15
+          
+          const errorMessage = `Translation rate limit reached. You can try again in ${waitMinutes} minutes.`
+          
+          // Show toast notification
+          toast({
+            title: "Rate limit reached",
+            description: errorMessage,
+            variant: "destructive",
+            duration: 8000,
+          })
+          
+          throw new Error(errorMessage)
+        }
         throw new Error(`Translation failed: ${response.statusText}`)
       }
 
@@ -497,6 +515,22 @@ export default function SolarTranslatePage() {
       await new Promise(resolve => setTimeout(resolve, 300))
       
       if (!response.ok) {
+        if (response.status === 429) {
+          // Handle rate limiting for uploads
+          const resetTime = result.resetTime ? new Date(result.resetTime) : null
+          const waitMinutes = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60)) : 15
+          
+          const errorMessage = `Upload rate limit reached. You can try again in ${waitMinutes} minutes.`
+          
+          toast({
+            title: "Upload rate limit reached",
+            description: errorMessage,
+            variant: "destructive",
+            duration: 8000,
+          })
+          
+          throw new Error(errorMessage)
+        }
         throw new Error(result.error || 'Upload failed')
       }
       

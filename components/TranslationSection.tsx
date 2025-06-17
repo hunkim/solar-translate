@@ -63,6 +63,14 @@ export function TranslationSection({
       })
 
       if (!response.ok) {
+        if (response.status === 429) {
+          // Handle rate limiting
+          const errorData = await response.json().catch(() => ({ error: 'Rate limit exceeded' }))
+          const resetTime = errorData.resetTime ? new Date(errorData.resetTime) : null
+          const waitMinutes = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60)) : 15
+          
+          throw new Error(`Translation rate limit reached. Please wait ${waitMinutes} minutes before trying again.`)
+        }
         throw new Error(`Translation failed: ${response.statusText}`)
       }
 

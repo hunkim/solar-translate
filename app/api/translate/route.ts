@@ -1,12 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, getClientIP, RATE_LIMITS } from '@/lib/rateLimiter'
+
+// Create rate limiter for translations
+const translateLimiter = rateLimit(RATE_LIMITS.translate)
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting
+    const clientIP = getClientIP(request)
+    const { allowed, resetTime, remaining } = translateLimiter(clientIP)
+    
+    if (!allowed) {
+      return NextResponse.json(
+        { 
+          error: 'Too many translation requests. Please try again later.',
+          resetTime: resetTime ? new Date(resetTime).toISOString() : undefined
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': resetTime ? Math.ceil((resetTime - Date.now()) / 1000).toString() : '900',
+            'X-RateLimit-Limit': RATE_LIMITS.translate.maxRequests.toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': resetTime ? resetTime.toString() : ''
+          }
+        }
+      )
+    }
+
+    // Store remaining for response headers
+    const remainingRequests = remaining || 0
+
     const { text, targetLang, instructions, previousContext } = await request.json()
 
     if (!text || !targetLang) {
       return NextResponse.json(
         { error: 'Missing required fields: text, targetLang' },
+        { status: 400 }
+      )
+    }
+
+    // Additional validation for text length
+    if (text.length > 10000) { // Max 10k characters per request
+      return NextResponse.json(
+        { error: 'Text too long. Maximum 10,000 characters allowed per request.' },
         { status: 400 }
       )
     }
@@ -130,6 +167,8 @@ Please maintain consistent terminology, style, and flow with the previous transl
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
+        'X-RateLimit-Limit': RATE_LIMITS.translate.maxRequests.toString(),
+        'X-RateLimit-Remaining': remainingRequests.toString(),
       },
     })
 
