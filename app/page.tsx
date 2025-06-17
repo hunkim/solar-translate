@@ -593,12 +593,12 @@ export default function SolarTranslatePage() {
           </div>
           <div className="text-center">
             <p className="font-serif text-lg text-slate-700 mb-3">Translate and Edit in Your Style for Perfect Results</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
               <a 
                 href="https://console.upstage.ai/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-md border border-slate-200 transition-all duration-200"
               >
                 🔑 Get API keys from Upstage Console
               </a>
@@ -606,7 +606,7 @@ export default function SolarTranslatePage() {
                 href="https://github.com/hunkim/solar-translate/issues" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-md border border-slate-200 transition-all duration-200"
               >
                 🐛 Report issues at GitHub Issues
               </a>
@@ -614,7 +614,7 @@ export default function SolarTranslatePage() {
                 href="https://upstage.ai" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-md border border-slate-200 transition-all duration-200"
               >
                 🏢 Contact for enterprise use at Upstage Homepage
               </a>
