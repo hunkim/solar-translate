@@ -466,8 +466,8 @@ export default function SolarTranslatePage() {
         handleMultiPageUpload(result.pages, result.filename)
       } else {
         // Handle single content (txt files or fallback)
-        const content = result.content
-        if (needsChunking(content, 500)) {
+        const content = result.content || ""
+        if (content && needsChunking(content, 500)) {
           // Use chunking logic for long documents
           setUploadProgress({
             stage: 'translating',
@@ -497,7 +497,7 @@ export default function SolarTranslatePage() {
         
         toast({
           title: "Document uploaded successfully",
-          description: `Extracted text from ${result.filename}. ${needsChunking(content, 500) ? 'Long document was automatically chunked.' : ''}`,
+          description: `Extracted text from ${result.filename}. ${content && needsChunking(content, 500) ? 'Long document was automatically chunked.' : content ? '' : 'No text was found in the image.'}`,
           duration: 4000,
         })
       }

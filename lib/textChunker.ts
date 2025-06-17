@@ -77,7 +77,7 @@ function splitLongSentence(sentence: string, maxWords: number): string[] {
  * Estimates the word count of a text string
  */
 export function countWords(text: string): number {
-  if (!text.trim()) return 0
+  if (!text || !text.trim()) return 0
   return text.trim().split(/\s+/).length
 }
 
@@ -85,5 +85,6 @@ export function countWords(text: string): number {
  * Validates if text needs to be chunked based on word count
  */
 export function needsChunking(text: string, threshold: number = 500): boolean {
+  if (!text) return false
   return countWords(text) > threshold
 } 
