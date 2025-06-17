@@ -126,7 +126,7 @@ export default function SolarTranslatePage() {
     // Trigger auto-translation for existing content after a short delay
     setTimeout(() => {
       sourcePages.forEach((page, index) => {
-        if (page.trim() && page.split(/\s+/).length > 10) {
+        if (page.trim() && page.split(/\s+/).length > 3) {
           translateText(page, index, newTargetLang)
         }
       })
@@ -175,8 +175,8 @@ export default function SolarTranslatePage() {
     newSourcePages[index] = value
     setSourcePages(newSourcePages)
 
-    // Auto-translate if text is substantial (>10 words)
-    if (value.trim() && value.split(/\s+/).length > 10) {
+    // Auto-translate if text is substantial (>3 words)
+    if (value.trim() && value.split(/\s+/).length > 3) {
       translateText(value, index)
     } else {
       // Clear translation for short text
@@ -373,6 +373,13 @@ export default function SolarTranslatePage() {
     navigator.clipboard.writeText(translatedPages[index])
   }
 
+  const handleManualTranslate = (index: number) => {
+    const text = sourcePages[index]
+    if (text.trim()) {
+      translateText(text, index)
+    }
+  }
+
   const retranslateAll = () => {
     // Cancel any ongoing translations
     if (abortControllerRef.current) {
@@ -478,7 +485,7 @@ export default function SolarTranslatePage() {
           setTranslatedPages(newTranslatedPages)
           
           // Auto-translate if content is substantial
-          if (content.trim() && content.split(/\s+/).length > 10) {
+          if (content.trim() && content.split(/\s+/).length > 3) {
             setUploadProgress({
               stage: 'translating',
               message: `Starting translation...`,
@@ -535,7 +542,7 @@ export default function SolarTranslatePage() {
     
     // Count pages that will be auto-translated
     const pagesToTranslate = pages.filter(page => 
-      page.content.trim() && page.content.split(/\s+/).length > 10
+              page.content.trim() && page.content.split(/\s+/).length > 3
     ).length
     
     if (pagesToTranslate > 0) {
@@ -549,7 +556,7 @@ export default function SolarTranslatePage() {
     // Auto-translate pages with substantial content
     pages.forEach((page, index) => {
       const pageIndex = page.pageNumber - 1
-      if (pageIndex >= 0 && page.content.trim() && page.content.split(/\s+/).length > 10) {
+      if (pageIndex >= 0 && page.content.trim() && page.content.split(/\s+/).length > 3) {
         // Add a small delay between translations to show progress
         setTimeout(() => {
           translateText(page.content, pageIndex)
@@ -787,6 +794,17 @@ export default function SolarTranslatePage() {
                         - {index + 1} -
                       </span>
                       <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 px-2 text-xs"
+                          onClick={() => handleManualTranslate(index)}
+                          disabled={!sourcePages[index].trim()}
+                          title="Translate this page manually"
+                        >
+                          <Languages className="h-3 w-3 mr-1" />
+                          Translate
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
