@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { chunkText, needsChunking } from "@/lib/textChunker"
+import { MarkdownRenderer } from "@/components/MarkdownRenderer"
 
 import {
   Plus,
@@ -101,8 +102,38 @@ export default function SolarTranslatePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Add AbortController ref to cancel ongoing translations
   const abortControllerRef = useRef<AbortController | null>(null)
-
-  // Removed showSignInDialog state
+  
+  // Function to detect if content contains markdown
+  const isMarkdownContent = (text: string): boolean => {
+    if (!text) return false
+    
+    // Check for common markdown patterns
+    const markdownPatterns = [
+      /^#{1,6}\s/m,           // Headers: # ## ### etc
+      /\*\*.*?\*\*/,          // Bold: **text**
+      /\*.*?\*/,              // Italic: *text*
+      /`.*?`/,                // Inline code: `code`
+      /^```/m,                // Code blocks: ```
+      /^[-*+]\s/m,            // Lists: - * +
+      /^\d+\.\s/m,            // Numbered lists: 1. 2.
+      /^>\s/m,                // Blockquotes: >
+      /^---+$/m,              // Horizontal rules: ---
+    ]
+    
+    return markdownPatterns.some(pattern => pattern.test(text))
+  }
+  
+  // Markdown content renderer (simple plain text with preserved line breaks)
+  const renderContent = (content: string): React.JSX.Element => {
+    if (!content) return <span></span>
+    
+    // Render markdown/plain text with preserved line breaks
+    return (
+      <span style={{ whiteSpace: 'pre-wrap' }}>
+        {content}
+      </span>
+    )
+  }
 
   const handleTargetLanguageChange = (newTargetLang: string) => {
     // Cancel any ongoing translations immediately
@@ -497,7 +528,7 @@ export default function SolarTranslatePage() {
         
         toast({
           title: "Document uploaded successfully",
-          description: `Extracted text from ${result.filename}. ${content && needsChunking(content, 500) ? 'Long document was automatically chunked.' : content ? '' : 'No text was found in the image.'}`,
+          description: `Extracted text from ${file.name}. ${content && needsChunking(content, 500) ? 'Long document was automatically chunked.' : content ? '' : 'No text was found in the image.'}`,
           duration: 4000,
         })
       }
@@ -565,8 +596,8 @@ export default function SolarTranslatePage() {
     })
     
     toast({
-      title: "Multi-page document uploaded successfully",
-      description: `Extracted ${pages.length} pages from ${filename}. Content placed in corresponding pages.${pagesToTranslate > 0 ? ` Auto-translating ${pagesToTranslate} pages...` : ''}`,
+      title: "Multi-page document uploaded successfully", 
+      description: `Extracted ${pages.length} pages. Content placed in corresponding pages.${pagesToTranslate > 0 ? ` Auto-translating ${pagesToTranslate} pages...` : ''}`,
       duration: 4000,
     })
   }
@@ -864,33 +895,63 @@ export default function SolarTranslatePage() {
                 </div>
               </div>
               <div className="flex flex-col gap-4 overflow-y-auto pr-2 flex-grow">
-                {translatedPages.map((page, index) => (
-                  <Card key={index} className="flex flex-col bg-slate-100/70">
-                    <Textarea
-                      value={page}
-                      readOnly
-                      placeholder="Translation..."
-                      className="resize-none border-0 focus-visible:ring-0 bg-transparent"
-                      style={{ height: '330px' }}
-                      rows={16}
-                    />
-                    <div className="flex items-center justify-end p-2 border-t">
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-800">
-                          <Languages className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-slate-500 hover:text-slate-800"
-                          onClick={() => copyPageToClipboard(index)}
+                {translatedPages.map((page, index) => {
+                  const hasMarkdown = isMarkdownContent(page)
+                  
+                  return (
+                    <Card key={index} className="flex flex-col bg-slate-100/70">
+                      {hasMarkdown ? (
+                        <div 
+                          className="p-3 min-h-[330px] max-h-[330px] overflow-y-auto border-0 bg-transparent"
+                          style={{ 
+                            fontSize: '14px',
+                            lineHeight: '1.5',
+                          }}
                         >
-                          <Copy className="h-4 w-4" />
-                        </Button>
+                          {page ? (
+                            <MarkdownRenderer content={page} />
+                          ) : (
+                            <span className="text-slate-400 italic">Translation...</span>
+                          )}
+                        </div>
+                      ) : (
+                        <Textarea
+                          value={page}
+                          readOnly
+                          placeholder="Translation..."
+                          className="resize-none border-0 focus-visible:ring-0 bg-transparent"
+                          style={{ height: '330px' }}
+                          rows={16}
+                        />
+                      )}
+                      <div className="flex items-center justify-between p-2 border-t">
+                        <div className="flex items-center gap-1 text-xs text-slate-500">
+                          <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                            Markdown
+                          </span>
+                          {hasMarkdown && (
+                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                              Auto-Rendered
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-slate-800">
+                            <Languages className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-slate-500 hover:text-slate-800"
+                            onClick={() => copyPageToClipboard(index)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  )
+                })}
               </div>
             </div>
           </main>

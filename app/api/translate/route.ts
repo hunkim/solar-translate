@@ -50,33 +50,7 @@ Please maintain consistent terminology, style, and flow with the previous transl
     5. Auto-detect the source language - do not ask for clarification
     6. If previous context is provided, ensure consistency in terminology and style`
 
-    // Log the prompt and request details for debugging
-    const debugInfo = {
-      timestamp: new Date().toISOString(),
-      targetLangCode: targetLang,
-      targetLangName: targetLanguageName,
-      instructions: instructions || 'None',
-      hasPreviousContext: !!previousContext,
-      userText: text.substring(0, 100) + (text.length > 100 ? '...' : ''),
-      systemPrompt: systemPrompt
-    }
-    
-    console.log('=== TRANSLATION REQUEST DEBUG ===')
-    console.log('Target Language Code:', targetLang)
-    console.log('Target Language Name:', targetLanguageName)
-    console.log('Instructions:', instructions || 'None')
-    console.log('Has Previous Context:', !!previousContext)
-    console.log('System Prompt:', systemPrompt)
-    console.log('User Text:', text.substring(0, 100) + (text.length > 100 ? '...' : ''))
-    console.log('=================================')
-    
-    // Also write to a debug file
-    try {
-      const fs = require('fs')
-      fs.appendFileSync('/tmp/translation-debug.log', JSON.stringify(debugInfo, null, 2) + '\n---\n')
-    } catch (e) {
-      // Ignore file write errors
-    }
+
 
     const response = await fetch('https://api.upstage.ai/v1/chat/completions', {
       method: 'POST',

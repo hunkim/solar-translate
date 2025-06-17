@@ -90,20 +90,22 @@ export async function POST(request: NextRequest) {
 
     const result = await response.json()
     
-    // Log the full response to understand the structure
-    console.log('=== UPSTAGE DOCUMENT PARSE RESPONSE ===')
-    console.log('Full result:', JSON.stringify(result, null, 2))
-    console.log('Result type:', typeof result)
-    console.log('Result keys:', Object.keys(result))
-    if (result.content) {
-      console.log('Content type:', typeof result.content)
-      console.log('Content is array:', Array.isArray(result.content))
-      if (Array.isArray(result.content)) {
-        console.log('Content array length:', result.content.length)
-        console.log('First content item:', JSON.stringify(result.content[0], null, 2))
+
+    
+    // First try to use the main content if available
+    if (result.content && (result.content.markdown || result.content.text)) {
+      const markdownContent = result.content.markdown || result.content.text || ''
+      
+      if (markdownContent.trim()) {
+        return NextResponse.json({ 
+          content: markdownContent,
+          filename: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          isMultiPage: false
+        })
       }
     }
-    console.log('=====================================')
     
     // Check if we have elements with page numbers (Upstage Document Parse format)
     if (result.elements && Array.isArray(result.elements)) {
