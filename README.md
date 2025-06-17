@@ -79,16 +79,14 @@ UPSTAGE_API_KEY=your_upstage_api_key_here
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # Rate Limiting (Optional - protects against API abuse)
-TRANSLATE_RATE_LIMIT=40                    # Max translations per window (default: 40)
-TRANSLATE_RATE_WINDOW_MS=900000            # Window duration in ms (default: 900000 = 15 minutes)
-UPLOAD_RATE_LIMIT=10                       # Max uploads per window (default: 10)  
-UPLOAD_RATE_WINDOW_MS=900000               # Window duration in ms (default: 900000 = 15 minutes)
+TRANSLATE_RATE_LIMIT=160                   # Max translations per hour (default: 160)
+UPLOAD_RATE_LIMIT=40                       # Max uploads per hour (default: 40)
 ```
 
 ### Rate Limiting
 The app includes built-in rate limiting to prevent API abuse:
-- **Translation API**: 40 requests per 15 minutes per IP (doubled from original 20)
-- **Upload API**: 10 requests per 15 minutes per IP (doubled from original 5)
+- **Translation API**: 160 requests per hour per IP
+- **Upload API**: 40 requests per hour per IP
 - **Configurable**: Adjust limits via environment variables
 - **User-Friendly**: Clear error messages with wait times when limits are reached
 

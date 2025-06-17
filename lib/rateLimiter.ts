@@ -1,14 +1,12 @@
 // Simple in-memory rate limiter
 //
 // Environment Variables (optional):
-// - TRANSLATE_RATE_LIMIT: Max translations per window (default: 40)
-// - TRANSLATE_RATE_WINDOW_MS: Translation window in milliseconds (default: 900000 = 15 minutes)
-// - UPLOAD_RATE_LIMIT: Max uploads per window (default: 10)
-// - UPLOAD_RATE_WINDOW_MS: Upload window in milliseconds (default: 900000 = 15 minutes)
+// - TRANSLATE_RATE_LIMIT: Max translations per hour (default: 160)
+// - UPLOAD_RATE_LIMIT: Max uploads per hour (default: 40)
 //
 // Example .env.local:
-// TRANSLATE_RATE_LIMIT=100
-// UPLOAD_RATE_LIMIT=20
+// TRANSLATE_RATE_LIMIT=500
+// UPLOAD_RATE_LIMIT=100
 interface RateLimitEntry {
   count: number
   resetTime: number
@@ -21,15 +19,15 @@ export interface RateLimitOptions {
   maxRequests: number // Max requests per window
 }
 
-// Rate limits - configurable via environment variables
+// Rate limits - configurable via environment variables (per hour)
 export const RATE_LIMITS = {
   translate: {
-    windowMs: parseInt(process.env.TRANSLATE_RATE_WINDOW_MS || '900000'), // 15 minutes default
-    maxRequests: parseInt(process.env.TRANSLATE_RATE_LIMIT || '40') // 40 translations per 15 minutes (160 per hour)
+    windowMs: 60 * 60 * 1000, // Fixed 1 hour window
+    maxRequests: parseInt(process.env.TRANSLATE_RATE_LIMIT || '160') // 160 translations per hour
   },
   upload: {
-    windowMs: parseInt(process.env.UPLOAD_RATE_WINDOW_MS || '900000'), // 15 minutes default
-    maxRequests: parseInt(process.env.UPLOAD_RATE_LIMIT || '10') // 10 uploads per 15 minutes (40 per hour)
+    windowMs: 60 * 60 * 1000, // Fixed 1 hour window
+    maxRequests: parseInt(process.env.UPLOAD_RATE_LIMIT || '40') // 40 uploads per hour
   }
 } as const
 
