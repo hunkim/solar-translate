@@ -591,34 +591,37 @@ export default function SolarTranslatePage() {
             <Sparkles className="h-7 w-7 text-violet-600" />
             <h1 className="text-xl font-semibold text-slate-800">Solar Translate Beta</h1>
           </div>
-          <div className="text-center">
-            <p className="font-serif text-lg text-slate-700 mb-3">Translate and Edit in Your Style for Perfect Results</p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-sm">
+          <div className="text-center max-w-2xl">
+            <p className="font-serif text-lg text-slate-700 mb-2">Translate and Edit in Your Style for Perfect Results</p>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              🔑 Get your API key at{" "}
               <a 
                 href="https://console.upstage.ai/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-md border border-slate-200 transition-all duration-200"
+                className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
               >
-                🔑 Get API keys from Upstage Console
+                Upstage Console
               </a>
+              {" "}• 🐛 Report issues at{" "}
               <a 
                 href="https://github.com/hunkim/solar-translate/issues" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-md border border-slate-200 transition-all duration-200"
+                className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
               >
-                🐛 Report issues at GitHub Issues
+                GitHub Issues
               </a>
+              {" "}• 🏢 For enterprise use, contact{" "}
               <a 
                 href="https://upstage.ai" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 rounded-md border border-slate-200 transition-all duration-200"
+                className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
               >
-                🏢 Contact for enterprise use at Upstage Homepage
+                Upstage
               </a>
-            </div>
+            </p>
           </div>
           <Button variant="outline" disabled>
             <GoogleIcon />
