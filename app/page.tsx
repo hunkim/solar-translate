@@ -591,26 +591,34 @@ export default function SolarTranslatePage() {
             <Sparkles className="h-7 w-7 text-violet-600" />
             <h1 className="text-xl font-semibold text-slate-800">Solar Translate Beta</h1>
           </div>
-          <div className="text-sm text-slate-600 text-center">
-            <p className="font-serif text-lg text-slate-700">Translate and Edit in Your Style for Perfect Results</p>
-            <p>
-              For direct API access, get your Solar API Key at{" "}
-              <a href="#" className="text-blue-600 underline">
-                Upstage Console
+          <div className="text-center">
+            <p className="font-serif text-lg text-slate-700 mb-3">Translate and Edit in Your Style for Perfect Results</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm">
+              <a 
+                href="https://console.upstage.ai/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+              >
+                🔑 Get API keys from Upstage Console
               </a>
-            </p>
-            <p>
-              For private, internal use of this translation service, please contact us at{" "}
-              <a href="#" className="text-blue-600 underline">
-                Upstage Homepage
+              <a 
+                href="https://github.com/hunkim/solar-translate/issues" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg transition-colors"
+              >
+                🐛 Report issues at GitHub Issues
               </a>
-            </p>
-            <p>
-              This is a beta service and issues may arise. Welcome your{" "}
-              <a href="#" className="text-blue-600 underline inline-flex items-center gap-1">
-                feedback <Mail className="h-4 w-4" />
+              <a 
+                href="https://upstage.ai" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+              >
+                🏢 Contact for enterprise use at Upstage Homepage
               </a>
-            </p>
+            </div>
           </div>
           <Button variant="outline" disabled>
             <GoogleIcon />
