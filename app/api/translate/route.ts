@@ -56,6 +56,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get model name from environment variable or use default
+    const modelName = process.env.UPSTAGE_MODEL_NAME || 'solar-pro2'
+
     // Convert language codes to full language names
     const languageMap: Record<string, string> = {
       'en': 'English',
@@ -96,7 +99,7 @@ Please maintain consistent terminology, style, and flow with the previous transl
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'solar-pro2-preview',
+        model: modelName,
         messages: [
           {
             role: 'system',

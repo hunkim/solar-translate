@@ -53,17 +53,24 @@ git clone https://github.com/your-username/solar-translate-app.git
 cd solar-translate-app
 
 # Install dependencies
-npm install
-# or
 pnpm install
 
-# Set up environment variables
-cp .env.example .env.local
+# Create .env.local file in the root directory
 # Add your UPSTAGE_API_KEY to .env.local
+# Also add UPSTAGE_MODEL_NAME to specify the model (optional)
+
+# Example structure:
+# projectname/
+# ├── .env.local          # ← Add your environment variables here
+# ├── README.md
+# ├── package.json
+# └── ...
+
+# Add these to your .env.local file:
+UPSTAGE_API_KEY=your_upstage_api_key_here
+UPSTAGE_MODEL_NAME=solar-pro2  # Optional, defaults to 'solar-pro2'
 
 # Run development server
-npm run dev
-# or
 pnpm dev
 ```
 

@@ -56,6 +56,7 @@ const targetLanguages = [
 
 // Available translation models
 const translationModels = [
+  { value: "solar-pro2", label: "Solar Pro2" },
   { value: "solar-pro2-preview", label: "Solar Pro2 Preview" },
   { value: "solar-mini", label: "Solar Mini" },
 ]
@@ -75,7 +76,7 @@ export default function SolarTranslatePage() {
   // Removed activeNav state
   const [translationInstructions, setTranslationInstructions] = useState("")
   const [instructionName, setInstructionName] = useState("")
-  const [selectedModel, setSelectedModel] = useState("solar-pro2-preview")
+  const [selectedModel, setSelectedModel] = useState("solar-pro2")
   const [historyItems, setHistoryItems] = useState(mockHistoryItems)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [currentProjectName, setCurrentProjectName] = useState<string | null>("New Project")

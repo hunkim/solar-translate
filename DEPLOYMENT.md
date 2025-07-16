@@ -50,7 +50,9 @@ Convert the SVG to PNG for social media:
 #### 3. Update Environment Variables
 Create `.env.local` for production:
 ```env
+# Environment variables for production
 UPSTAGE_API_KEY=your_production_api_key
+UPSTAGE_MODEL_NAME=solar-pro2  # Optional, defaults to 'solar-pro2'
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 ```
 
