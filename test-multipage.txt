@@ -1,0 +1,8 @@
+Page 1 Content:
+This is the content of the first page. It contains important information about the document structure and how multi-page documents should be handled by the translation system.
+
+Page 2 Content:
+This is the second page of the document. It continues the discussion from the first page and provides additional details about the implementation of page-based content management.
+ 
+Page 3 Content:
+The third page concludes the document with final thoughts and recommendations for handling multi-page document uploads in the translation application. 

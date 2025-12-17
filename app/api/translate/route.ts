@@ -9,14 +9,14 @@ export async function POST(request: NextRequest) {
     // Apply rate limiting
     const clientIP = getClientIP(request)
     const { allowed, resetTime, remaining } = translateLimiter(clientIP)
-    
+
     if (!allowed) {
       return NextResponse.json(
-        { 
+        {
           error: 'Too many translation requests. Please try again later.',
           resetTime: resetTime ? new Date(resetTime).toISOString() : undefined
         },
-        { 
+        {
           status: 429,
           headers: {
             'Retry-After': resetTime ? Math.ceil((resetTime - Date.now()) / 1000).toString() : '900',
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Store remaining for response headers
     const remainingRequests = remaining || 0
 
-    const { text, targetLang, instructions, previousContext } = await request.json()
+    const { text, targetLang, instructions, previousContext, model } = await request.json()
 
     if (!text || !targetLang) {
       return NextResponse.json(
@@ -56,16 +56,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get model name from environment variable or use default
-    const modelName = process.env.UPSTAGE_MODEL_NAME || 'solar-pro2'
+    // Use model from request, then environment variable, then default
+    const modelName = model || process.env.UPSTAGE_MODEL_NAME || 'solar-open'
 
     // Convert language codes to full language names
     const languageMap: Record<string, string> = {
       'en': 'English',
-      'ko': 'Korean', 
+      'ko': 'Korean',
       'ja': 'Japanese'
     }
-    
+
     const targetLanguageName = languageMap[targetLang] || targetLang
 
     // Construct the translation prompt with optional context
@@ -78,9 +78,8 @@ Previous translation: "${previousContext.translation}"
 Please maintain consistent terminology, style, and flow with the previous translation.`
     }
 
-    const systemPrompt = `You are a professional translator. Auto-detect the source language and translate the following text to ${targetLanguageName}. ${
-      instructions ? `Additional instructions: ${instructions}` : ''
-    }${contextInstruction}
+    const systemPrompt = `You are a professional translator. Auto-detect the source language and translate the following text to ${targetLanguageName}. ${instructions ? `Additional instructions: ${instructions}` : ''
+      }${contextInstruction}
 
     Rules:
     1. Maintain the original meaning and tone

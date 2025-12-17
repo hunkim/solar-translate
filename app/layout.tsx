@@ -77,9 +77,12 @@ export const metadata: Metadata = {
     ],
   },
   manifest: '/site.webmanifest',
-  verification: {
-    google: 'your-google-verification-code',
-  },
+  // Note: Add Google site verification via environment variable: NEXT_PUBLIC_GOOGLE_VERIFICATION
+  ...(process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION && {
+    verification: {
+      google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
+    },
+  }),
 }
 
 export default function RootLayout({

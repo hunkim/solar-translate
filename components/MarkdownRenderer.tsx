@@ -17,6 +17,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     let listItems: string[] = []
     let inCodeBlock = false
     let codeBlockContent: string[] = []
+    let tableRows: string[] = []
 
     const flushListItems = () => {
       if (listItems.length > 0) {
@@ -44,6 +45,58 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       }
     }
 
+    const flushTable = () => {
+      if (tableRows.length > 0) {
+        // Parse table rows
+        const parsedRows = tableRows.map(row =>
+          row.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
+        )
+
+        // Check if second row is separator (contains dashes)
+        const hasSeparator = parsedRows.length > 1 &&
+          parsedRows[1].every(cell => /^[-:]+$/.test(cell))
+
+        const headerRow = parsedRows[0]
+        const bodyRows = hasSeparator ? parsedRows.slice(2) : parsedRows.slice(1)
+
+        elements.push(
+          <div key={`table-${elements.length}`} className="overflow-x-auto mb-4">
+            <table className="min-w-full border-collapse border border-gray-300">
+              {headerRow && (
+                <thead className="bg-gray-100">
+                  <tr>
+                    {headerRow.map((cell, cellIdx) => (
+                      <th key={cellIdx} className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">
+                        {parseInlineMarkdown(cell.replace(/<br\s*\/?>/gi, '\n'))}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+              )}
+              <tbody>
+                {bodyRows.map((row, rowIdx) => (
+                  <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    {row.map((cell, cellIdx) => (
+                      <td key={cellIdx} className="border border-gray-300 px-3 py-2 text-sm whitespace-pre-line">
+                        {parseInlineMarkdown(cell.replace(/<br\s*\/?>/gi, '\n'))}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+        tableRows = []
+      }
+    }
+
+    // Check if a line is a table row
+    const isTableRow = (line: string) => {
+      const trimmed = line.trim()
+      return trimmed.startsWith('|') && trimmed.endsWith('|')
+    }
+
     lines.forEach((line, index) => {
       const trimmedLine = line.trim()
 
@@ -54,6 +107,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
           inCodeBlock = false
         } else {
           flushListItems()
+          flushTable()
           inCodeBlock = true
         }
         return
@@ -62,6 +116,16 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
       if (inCodeBlock) {
         codeBlockContent.push(line)
         return
+      }
+
+      // Handle table rows
+      if (isTableRow(trimmedLine)) {
+        flushListItems()
+        tableRows.push(trimmedLine)
+        return
+      } else if (tableRows.length > 0) {
+        // End of table
+        flushTable()
       }
 
       // Handle headers
@@ -116,6 +180,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     // Flush any remaining items
     flushListItems()
     flushCodeBlock()
+    flushTable()
 
     return elements
   }
@@ -125,8 +190,21 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     let lastIndex = 0
 
     // Collect all matches first
-    const matches: Array<{ type: string, start: number, end: number, content: string }> = []
-    
+    const matches: Array<{ type: string, start: number, end: number, content: string, url?: string }> = []
+
+    // Link matches [text](url)
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+    let linkMatch: RegExpExecArray | null
+    while ((linkMatch = linkRegex.exec(text)) !== null) {
+      matches.push({
+        type: 'link',
+        start: linkMatch.index,
+        end: linkMatch.index + linkMatch[0].length,
+        content: linkMatch[1],
+        url: linkMatch[2]
+      })
+    }
+
     // Bold matches **text**
     const boldRegex = /\*\*(.*?)\*\*/g
     let boldMatch: RegExpExecArray | null
@@ -144,7 +222,7 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
     let italicMatch: RegExpExecArray | null
     while ((italicMatch = italicRegex.exec(text)) !== null) {
       // Don't match if it's part of a bold match
-      const isPartOfBold = matches.some(m => 
+      const isPartOfBold = matches.some(m =>
         m.type === 'bold' && italicMatch!.index >= m.start && italicMatch!.index + italicMatch![0].length <= m.end
       )
       if (!isPartOfBold) {
@@ -192,6 +270,19 @@ export function MarkdownRenderer({ content, className = "" }: MarkdownRendererPr
 
       // Add the formatted match
       switch (match.type) {
+        case 'link':
+          result.push(
+            <a
+              key={`link-${index}`}
+              href={match.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline"
+            >
+              {match.content}
+            </a>
+          )
+          break
         case 'bold':
           result.push(<strong key={`bold-${index}`}>{match.content}</strong>)
           break

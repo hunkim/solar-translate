@@ -14,6 +14,25 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>()
 
+// Periodic cleanup of expired entries (every 5 minutes)
+let cleanupIntervalStarted = false
+function startCleanupInterval() {
+  if (cleanupIntervalStarted) return
+  cleanupIntervalStarted = true
+
+  setInterval(() => {
+    const now = Date.now()
+    for (const [key, entry] of rateLimitStore.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitStore.delete(key)
+      }
+    }
+  }, 5 * 60 * 1000) // Run every 5 minutes
+}
+
+// Start cleanup on module load
+startCleanupInterval()
+
 export interface RateLimitOptions {
   windowMs: number // Time window in milliseconds
   maxRequests: number // Max requests per window
@@ -49,15 +68,15 @@ export function rateLimit(options: RateLimitOptions) {
         count: 1,
         resetTime: now + options.windowMs
       })
-      return { 
-        allowed: true, 
-        remaining: options.maxRequests - 1 
+      return {
+        allowed: true,
+        remaining: options.maxRequests - 1
       }
     }
 
     if (currentEntry.count >= options.maxRequests) {
-      return { 
-        allowed: false, 
+      return {
+        allowed: false,
         resetTime: currentEntry.resetTime,
         remaining: 0
       }
@@ -66,10 +85,10 @@ export function rateLimit(options: RateLimitOptions) {
     // Increment count
     currentEntry.count++
     rateLimitStore.set(identifier, currentEntry)
-    
-    return { 
-      allowed: true, 
-      remaining: options.maxRequests - currentEntry.count 
+
+    return {
+      allowed: true,
+      remaining: options.maxRequests - currentEntry.count
     }
   }
 }
@@ -78,14 +97,14 @@ export function rateLimit(options: RateLimitOptions) {
 export function getClientIP(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for')
   const real = request.headers.get('x-real-ip')
-  
+
   if (forwarded) {
     return forwarded.split(',')[0].trim()
   }
-  
+
   if (real) {
     return real.trim()
   }
-  
+
   return 'unknown'
 } 

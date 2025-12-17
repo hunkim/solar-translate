@@ -12,7 +12,6 @@ import { chunkText, needsChunking } from "@/lib/textChunker"
 import { MarkdownRenderer } from "@/components/MarkdownRenderer"
 
 import {
-  Plus,
   X,
   Copy,
   Sparkles,
@@ -22,18 +21,9 @@ import {
   Eraser,
   Settings,
   ChevronDown,
-  HistoryIcon,
   RefreshCw,
   Trash,
-
 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
 // Removed Dialog imports as they are no longer used
 
 // A simple placeholder for the Google icon
@@ -56,6 +46,7 @@ const targetLanguages = [
 
 // Available translation models
 const translationModels = [
+  { value: "solar-open", label: "Solar Open" },
   { value: "solar-pro2", label: "Solar Pro2" },
   { value: "solar-pro2-preview", label: "Solar Pro2 Preview" },
   { value: "solar-mini", label: "Solar Mini" },
@@ -76,12 +67,12 @@ export default function SolarTranslatePage() {
   // Removed activeNav state
   const [translationInstructions, setTranslationInstructions] = useState("")
   const [instructionName, setInstructionName] = useState("")
-  const [selectedModel, setSelectedModel] = useState("solar-pro2")
+  const [selectedModel, setSelectedModel] = useState("solar-open")
   const [historyItems, setHistoryItems] = useState(mockHistoryItems)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [currentProjectName, setCurrentProjectName] = useState<string | null>("New Project")
   const [savedInstructionSets, setSavedInstructionSets] = useState([
-    { id: "instr1", name: "Formal Tone", instructions: "Maintain a formal tone throughout.", model: "solar-large" },
+    { id: "instr1", name: "Formal Tone", instructions: "Maintain a formal tone throughout.", model: "solar-open" },
     {
       id: "instr2",
       name: "Casual Blog Post",
@@ -90,7 +81,7 @@ export default function SolarTranslatePage() {
     },
   ])
   // Add state to track when chunking has occurred and needs auto-translation
-  const [pendingAutoTranslation, setPendingAutoTranslation] = useState<{startIndex: number, pageCount: number} | null>(null)
+  const [pendingAutoTranslation, setPendingAutoTranslation] = useState<{ startIndex: number, pageCount: number } | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{
     stage: 'idle' | 'uploading' | 'processing' | 'extracting' | 'translating'
@@ -105,11 +96,13 @@ export default function SolarTranslatePage() {
   const abortControllerRef = useRef<AbortController | null>(null)
   // Add state to track which page is currently being translated
   const [activeTranslationIndex, setActiveTranslationIndex] = useState<number | null>(null)
-  
+  // Debounce timer ref for translation
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   // Function to detect if content contains markdown
   const isMarkdownContent = (text: string): boolean => {
     if (!text) return false
-    
+
     // Check for common markdown patterns
     const markdownPatterns = [
       /^#{1,6}\s/m,           // Headers: # ## ### etc
@@ -122,14 +115,14 @@ export default function SolarTranslatePage() {
       /^>\s/m,                // Blockquotes: >
       /^---+$/m,              // Horizontal rules: ---
     ]
-    
+
     return markdownPatterns.some(pattern => pattern.test(text))
   }
-  
+
   // Markdown content renderer (simple plain text with preserved line breaks)
   const renderContent = (content: string): React.JSX.Element => {
     if (!content) return <span></span>
-    
+
     // Render markdown/plain text with preserved line breaks
     return (
       <span style={{ whiteSpace: 'pre-wrap' }}>
@@ -144,30 +137,37 @@ export default function SolarTranslatePage() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
-    
+
+    // Clear any pending debounce timers
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+
     // Clear active translation indicator
     setActiveTranslationIndex(null)
-    
+
     setTargetLang(newTargetLang)
-    
+
     // Clear all current translations since language changed
     setTranslatedPages(sourcePages.map(() => ""))
-    
+
     // Show toast notification about language change
     toast({
       title: "Language changed",
       description: `Target language changed to ${targetLanguages.find(lang => lang.value === newTargetLang)?.label}. Previous translations cleared.`,
       duration: 3000,
     })
-    
-    // Trigger auto-translation for existing content after a short delay
-    setTimeout(() => {
-      sourcePages.forEach((page, index) => {
-        if (page.trim() && page.split(/\s+/).length > 3) {
-          translateText(page, index, newTargetLang)
-        }
-      })
-    }, 100)
+
+    // Count pages with content for sequential translation
+    const pagesWithContent = sourcePages.filter(page => page.trim() && page.split(/\s+/).length > 3).length
+
+    if (pagesWithContent > 0) {
+      // Use sequential translation instead of parallel to avoid race conditions
+      setTimeout(() => {
+        translatePagesSequentially(0, sourcePages.length, newTargetLang)
+      }, 100)
+    }
   }
 
   const handleAddPage = () => {
@@ -186,7 +186,7 @@ export default function SolarTranslatePage() {
 
   const handleRemovePage = (index: number) => {
     const hasContent = sourcePages[index].trim() || translatedPages[index].trim()
-    
+
     if (hasContent) {
       toast({
         title: "Cannot delete page",
@@ -196,7 +196,7 @@ export default function SolarTranslatePage() {
       })
       return
     }
-    
+
     setSourcePages(sourcePages.filter((_, i) => i !== index))
     setTranslatedPages(translatedPages.filter((_, i) => i !== index))
   }
@@ -212,9 +212,17 @@ export default function SolarTranslatePage() {
     newSourcePages[index] = value
     setSourcePages(newSourcePages)
 
-    // Auto-translate if text is substantial (>3 words)
+    // Clear any existing debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    // Auto-translate if text is substantial (>3 words) with debounce
     if (value.trim() && value.split(/\s+/).length > 3) {
-      translateText(value, index)
+      // Debounce translation by 600ms to avoid excessive API calls while typing
+      debounceTimerRef.current = setTimeout(() => {
+        translateText(value, index)
+      }, 600)
     } else {
       // Clear translation for short text
       const newTranslatedPages = [...translatedPages]
@@ -226,22 +234,22 @@ export default function SolarTranslatePage() {
   const handleLongTextChunking = (pastePageIndex: number, longText: string) => {
     // Chunk the text into ~500 word pieces at sentence boundaries
     const chunks = chunkText(longText, 500)
-    
+
     // Calculate how many new pages we need
     const pagesNeeded = chunks.length
     const currentPageCount = sourcePages.length
     const additionalPagesNeeded = Math.max(0, pagesNeeded - (currentPageCount - pastePageIndex))
-    
+
     // Create new source and translated pages arrays
     const newSourcePages = [...sourcePages]
     const newTranslatedPages = [...translatedPages]
-    
+
     // Add additional pages if needed for the chunks
     for (let i = 0; i < additionalPagesNeeded; i++) {
       newSourcePages.push("")
       newTranslatedPages.push("")
     }
-    
+
     // Place chunks into pages:
     // - First chunk (chunks[0]) stays in the page where user pasted (pastePageIndex)
     // - Second chunk (chunks[1]) goes to next page (pastePageIndex + 1)  
@@ -252,17 +260,17 @@ export default function SolarTranslatePage() {
       newSourcePages[targetPageIndex] = chunk
       newTranslatedPages[targetPageIndex] = "" // Clear existing translations
     })
-    
+
     // Clear any remaining pages that were previously filled beyond our chunks
     for (let i = pastePageIndex + chunks.length; i < currentPageCount; i++) {
       newSourcePages[i] = ""
       newTranslatedPages[i] = ""
     }
-    
+
     // Update state
     setSourcePages(newSourcePages)
     setTranslatedPages(newTranslatedPages)
-    
+
     // Set pending auto-translation to be triggered by useEffect after state update
     setPendingAutoTranslation({ startIndex: pastePageIndex, pageCount: chunks.length })
 
@@ -312,6 +320,7 @@ export default function SolarTranslatePage() {
           targetLang: currentTargetLang,
           instructions: translationInstructions,
           previousContext,
+          model: selectedModel,
         }),
         signal: abortController.signal,
       })
@@ -322,9 +331,9 @@ export default function SolarTranslatePage() {
           const errorData = await response.json().catch(() => ({ error: 'Rate limit exceeded' }))
           const resetTime = errorData.resetTime ? new Date(errorData.resetTime) : null
           const waitMinutes = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60)) : 15
-          
+
           const errorMessage = `Translation rate limit reached. You can try again in ${waitMinutes} minutes.`
-          
+
           // Show toast notification
           toast({
             title: "Rate limit reached",
@@ -332,7 +341,7 @@ export default function SolarTranslatePage() {
             variant: "destructive",
             duration: 8000,
           })
-          
+
           throw new Error(errorMessage)
         }
         throw new Error(`Translation failed: ${response.statusText}`)
@@ -380,7 +389,7 @@ export default function SolarTranslatePage() {
         console.log('Translation aborted')
         return
       }
-      
+
       console.error('Translation error:', error)
       // Use functional update for error case too
       setTranslatedPages(prevPages => {
@@ -418,7 +427,7 @@ export default function SolarTranslatePage() {
     if (pendingAutoTranslation) {
       const { startIndex, pageCount } = pendingAutoTranslation
       setPendingAutoTranslation(null) // Clear the pending state
-      
+
       // Start sequential translation
       translatePagesSequentially(startIndex, pageCount)
     }
@@ -446,18 +455,18 @@ export default function SolarTranslatePage() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
-    
+
     // Clear active translation indicator
     setActiveTranslationIndex(null)
-    
+
     // Clear all translations first
     setTranslatedPages(sourcePages.map(() => ""))
-    
+
     // Find all pages with content and translate them sequentially
     const pagesToTranslate = sourcePages
       .map((page, index) => ({ page, index }))
       .filter(({ page }) => page.trim())
-    
+
     if (pagesToTranslate.length > 0) {
       translatePagesSequentially(0, sourcePages.length)
     }
@@ -480,61 +489,61 @@ export default function SolarTranslatePage() {
       message: `Uploading ${file.name}...`,
       filename: file.name
     })
-    
+
     try {
       const formData = new FormData()
       formData.append('file', file)
-      
+
       // Add minimum delay to show uploading stage
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       // Update progress to processing
       setUploadProgress({
         stage: 'processing',
         message: `Processing ${file.name}...`,
         filename: file.name
       })
-      
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       })
-      
+
       // Add minimum delay to show processing stage
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       // Update progress to extracting
       setUploadProgress({
         stage: 'extracting',
         message: `Extracting content from ${file.name}...`,
         filename: file.name
       })
-      
+
       const result = await response.json()
-      
+
       // Add minimum delay to show extracting stage
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       if (!response.ok) {
         if (response.status === 429) {
           // Handle rate limiting for uploads
           const resetTime = result.resetTime ? new Date(result.resetTime) : null
           const waitMinutes = resetTime ? Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60)) : 15
-          
+
           const errorMessage = `Upload rate limit reached. You can try again in ${waitMinutes} minutes.`
-          
+
           toast({
             title: "Upload rate limit reached",
             description: errorMessage,
             variant: "destructive",
             duration: 8000,
           })
-          
+
           throw new Error(errorMessage)
         }
         throw new Error(result.error || 'Upload failed')
       }
-      
+
       if (result.isMultiPage && result.pages) {
         // Handle page-based content from Document Parse
         setUploadProgress({
@@ -562,7 +571,7 @@ export default function SolarTranslatePage() {
           newTranslatedPages[0] = ""
           setSourcePages(newSourcePages)
           setTranslatedPages(newTranslatedPages)
-          
+
           // Auto-translate if content is substantial
           if (content.trim() && content.split(/\s+/).length > 3) {
             setUploadProgress({
@@ -573,14 +582,14 @@ export default function SolarTranslatePage() {
             translateText(content, 0)
           }
         }
-        
+
         toast({
           title: "Document uploaded successfully",
           description: `Extracted text from ${file.name}. ${content && needsChunking(content, 500) ? 'Long document was automatically chunked.' : content ? '' : 'No text was found in the image.'}`,
           duration: 4000,
         })
       }
-      
+
     } catch (error) {
       console.error('Upload error:', error)
       toast({
@@ -602,11 +611,11 @@ export default function SolarTranslatePage() {
     // Create enough pages to accommodate all document pages
     const maxPageNumber = Math.max(...pages.map(p => p.pageNumber))
     const pagesNeeded = Math.max(maxPageNumber, pages.length)
-    
+
     // Initialize arrays with enough pages
     const newSourcePages = Array(pagesNeeded).fill("")
     const newTranslatedPages = Array(pagesNeeded).fill("")
-    
+
     // Place content in the correct pages based on page numbers
     pages.forEach((page) => {
       const pageIndex = page.pageNumber - 1 // Convert to 0-based index
@@ -614,37 +623,32 @@ export default function SolarTranslatePage() {
         newSourcePages[pageIndex] = page.content
       }
     })
-    
+
     // Update state
     setSourcePages(newSourcePages)
     setTranslatedPages(newTranslatedPages)
-    
+
     // Count pages that will be auto-translated
-    const pagesToTranslate = pages.filter(page => 
-              page.content.trim() && page.content.split(/\s+/).length > 3
+    const pagesToTranslate = pages.filter(page =>
+      page.content.trim() && page.content.split(/\s+/).length > 3
     ).length
-    
+
     if (pagesToTranslate > 0) {
       setUploadProgress({
         stage: 'translating',
         message: `Starting auto-translation for ${pagesToTranslate} pages...`,
         filename: filename
       })
+
+      // Use sequential translation instead of parallel to avoid race conditions
+      // Schedule it after state update
+      setTimeout(() => {
+        translatePagesSequentially(0, pagesNeeded)
+      }, 100)
     }
-    
-    // Auto-translate pages with substantial content
-    pages.forEach((page, index) => {
-      const pageIndex = page.pageNumber - 1
-      if (pageIndex >= 0 && page.content.trim() && page.content.split(/\s+/).length > 3) {
-        // Add a small delay between translations to show progress
-        setTimeout(() => {
-          translateText(page.content, pageIndex)
-        }, index * 100)
-      }
-    })
-    
+
     toast({
-      title: "Multi-page document uploaded successfully", 
+      title: "Multi-page document uploaded successfully",
       description: `Extracted ${pages.length} pages. Content placed in corresponding pages.${pagesToTranslate > 0 ? ` Auto-translating ${pagesToTranslate} pages...` : ''}`,
       duration: 4000,
     })
@@ -681,27 +685,27 @@ export default function SolarTranslatePage() {
             <p className="font-serif text-lg text-slate-700 mb-2">Translate and Edit in Your Style for Perfect Results</p>
             <p className="text-sm text-slate-600 leading-relaxed">
               🔑 Get your API key at{" "}
-              <a 
-                href="https://console.upstage.ai/" 
-                target="_blank" 
+              <a
+                href="https://console.upstage.ai/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
               >
                 Upstage Console
               </a>
               {" "}• 🐛 Report issues at{" "}
-              <a 
-                href="https://github.com/hunkim/solar-translate/issues" 
-                target="_blank" 
+              <a
+                href="https://github.com/hunkim/solar-translate/issues"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
               >
                 GitHub Issues
               </a>
               {" "}• 🏢 For enterprise use, contact{" "}
-              <a 
-                href="https://upstage.ai" 
-                target="_blank" 
+              <a
+                href="https://upstage.ai"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
               >
@@ -797,7 +801,7 @@ export default function SolarTranslatePage() {
                       + Page
                     </Button>
                     <Button variant="outline" onClick={handleUploadClick} disabled={isUploading}>
-                      <Upload className="h-4 w-4 mr-2" /> 
+                      <Upload className="h-4 w-4 mr-2" />
                       {isUploading ? (
                         <span className="flex items-center gap-2">
                           <div className="animate-spin h-3 w-3 border border-slate-400 border-t-transparent rounded-full"></div>
@@ -823,7 +827,7 @@ export default function SolarTranslatePage() {
                     </Button>
                   </div>
                 </div>
-                
+
                 {/* Upload Progress Indicator */}
                 {isUploading && uploadProgress.stage !== 'idle' && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -841,16 +845,16 @@ export default function SolarTranslatePage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="mt-2 bg-blue-100 rounded-full h-1.5">
-                      <div 
+                      <div
                         className="bg-blue-500 h-1.5 rounded-full transition-all duration-500 ease-out"
                         style={{
                           width: uploadProgress.stage === 'uploading' ? '25%' :
-                                 uploadProgress.stage === 'processing' ? '50%' :
-                                 uploadProgress.stage === 'extracting' ? '75%' :
-                                 uploadProgress.stage === 'translating' ? '90%' : '0%'
+                            uploadProgress.stage === 'processing' ? '50%' :
+                              uploadProgress.stage === 'extracting' ? '75%' :
+                                uploadProgress.stage === 'translating' ? '90%' : '0%'
                         }}
                       ></div>
                     </div>
@@ -873,9 +877,9 @@ export default function SolarTranslatePage() {
                         - {index + 1} -
                       </span>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="h-7 px-2 text-xs"
                           onClick={() => handleManualTranslate(index)}
                           disabled={!sourcePages[index].trim()}
@@ -884,9 +888,9 @@ export default function SolarTranslatePage() {
                           <Languages className="h-3 w-3 mr-1" />
                           Translate
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="h-7 w-7 text-slate-500 hover:text-slate-800"
                           onClick={() => handleErasePage(index)}
                           title="Clear this page"
@@ -946,7 +950,7 @@ export default function SolarTranslatePage() {
                 {translatedPages.map((page, index) => {
                   const hasMarkdown = isMarkdownContent(page)
                   const isActivelyTranslating = activeTranslationIndex === index
-                  
+
                   return (
                     <Card key={index} className="flex flex-col relative bg-slate-100/70">
                       {/* Simple spinning icon in top-left corner when actively translating */}
@@ -955,11 +959,11 @@ export default function SolarTranslatePage() {
                           <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                         </div>
                       )}
-                      
+
                       {hasMarkdown ? (
-                        <div 
+                        <div
                           className={`p-3 min-h-[330px] max-h-[330px] overflow-y-auto border-0 bg-transparent ${isActivelyTranslating ? 'pt-8 pl-8' : ''}`}
-                          style={{ 
+                          style={{
                             fontSize: '14px',
                             lineHeight: '1.5',
                           }}
@@ -1012,7 +1016,7 @@ export default function SolarTranslatePage() {
               </div>
             </div>
           </main>
-          
+
           {/* Footer */}
           <footer className="border-t bg-slate-50/50 px-6 py-4 mt-8">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-600">
@@ -1020,27 +1024,27 @@ export default function SolarTranslatePage() {
                 <span>Solar Translate - AI-Powered Document Translation</span>
               </div>
               <div className="flex items-center gap-6">
-                <a 
-                  href="https://github.com/hunkim/solar-translate/issues" 
-                  target="_blank" 
+                <a
+                  href="https://github.com/hunkim/solar-translate/issues"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-slate-900 transition-colors"
                 >
                   <Mail className="h-4 w-4" />
                   Feedback
                 </a>
-                <a 
-                  href="https://console.upstage.ai/" 
-                  target="_blank" 
+                <a
+                  href="https://console.upstage.ai/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-slate-900 transition-colors"
                 >
                   <Settings className="h-4 w-4" />
                   Get API Key
                 </a>
-                <a 
-                  href="https://upstage.ai" 
-                  target="_blank" 
+                <a
+                  href="https://upstage.ai"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 hover:text-slate-900 transition-colors"
                 >
@@ -1051,9 +1055,9 @@ export default function SolarTranslatePage() {
             </div>
             <div className="mt-2 text-xs text-slate-500 text-center">
               For private, internal use of this translation service, please contact us at{" "}
-              <a 
-                href="https://upstage.ai" 
-                target="_blank" 
+              <a
+                href="https://upstage.ai"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-slate-700"
               >
